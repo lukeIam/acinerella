@@ -332,6 +332,14 @@ typedef int (CALL_CONVT *ac_openclose_callback)(void *sender);
 EXTERN lp_ac_instance CALL_CONVT ac_init(void);
 
 /**
+* Initializes an Acinerella instance with a specific output format.
+*
+* @return a pointer at an acinerella instance. The instance must be freed using
+* ac_free.
+*/
+EXTERN lp_ac_instance CALL_CONVT ac_init_of(ac_output_format outputFormat);
+
+/**
  * Frees a previously created Acinerella instance.
  *
  * @param pacInstance is the Acinerella instance that should be freed.

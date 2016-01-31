@@ -169,6 +169,24 @@ lp_ac_instance CALL_CONVT ac_init(void)
 	return (lp_ac_instance)ptmp;
 }
 
+lp_ac_instance CALL_CONVT ac_init_of(ac_output_format outputFormat)
+{
+	ac_init_ffmpeg();
+
+	// Allocate a new instance of the videoplayer data and return it
+	lp_ac_data ptmp;
+	ptmp = (lp_ac_data)av_malloc(sizeof(ac_data));
+
+	// Initialize the created structure
+	memset(ptmp, 0, sizeof(ac_data));
+
+	ptmp->instance.opened = 0;
+	ptmp->instance.stream_count = 0;
+	ptmp->instance.output_format = outputFormat;
+	init_info(&(ptmp->instance.info));
+	return (lp_ac_instance)ptmp;
+}
+
 void CALL_CONVT ac_free(lp_ac_instance pacInstance)
 {
 	if (pacInstance) {
