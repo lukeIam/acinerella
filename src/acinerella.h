@@ -425,6 +425,17 @@ EXTERN int CALL_CONVT
     ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
 
 /**
+* Decodes a package using the specified decoder and skips it. Returns true id a frame was skiped.
+*
+* @param pPackage is the package that should be decoded, previously read by the
+* ac_read_package method.
+* @param pDecoder is the decoder instance that should be used to decode the
+* package -- use the stream index stored in the package to determine the
+* correct decoder.
+*/
+EXTERN int CALL_CONVT
+	ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
+/**
  * Seeks to the given target position in the file. The seek funtion is not able
  * to seek a single audio/video stream but seeks the whole file forward. The
  * stream number paremter (nb) is only used for the timecode reference.

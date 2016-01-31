@@ -789,6 +789,20 @@ int ac_decode_video_package(lp_ac_package pPackage,
 	return 0;
 }
 
+int ac_skip_video_package(lp_ac_package pPackage,
+	lp_ac_video_decoder pDecoder)
+{
+	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
+
+	int finished;
+	if (avcodec_decode_video2(pDecoder->pCodecCtx, pDecoder->pFrame, &finished,
+		pkt->pPack) < 0) {
+		return 0;
+	}
+
+	return finished;
+}
+
 int ac_decode_audio_package(lp_ac_package pPackage,
                             lp_ac_audio_decoder pDecoder)
 {
@@ -821,6 +835,20 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 		// No conversion needs to be done, simply set the buffer pointer
 		pDecoder->decoder.pBuffer = pDecoder->pFrame->data[0];
 	}
+
+	return got_frame;
+}
+
+int ac_skip_audio_package(lp_ac_package pPackage,
+	lp_ac_audio_decoder pDecoder)
+{
+	int got_frame = 0;
+	int len = 0;
+	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
+	if ((len = avcodec_decode_audio4(pDecoder->pCodecCtx, pDecoder->pFrame,
+		&got_frame, pkt->pPack)) < 0) {
+		return 0;
+	}	
 
 	return got_frame;
 }
@@ -862,6 +890,49 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
 		return ac_decode_video_package(pPackage, (lp_ac_video_decoder)pDecoder);
 	} else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
 		return ac_decode_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);
+	}
+	return 0;
+}
+
+int CALL_CONVT ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
+{
+	double timebase = av_q2d(((lp_ac_data)pDecoder->pacInstance)
+		->pFormatCtx->streams[pPackage->stream_index]
+		->time_base);
+
+	// Create a valid timecode
+	if (((lp_ac_package_data)pPackage)->pts > 0) {
+		lp_ac_decoder_data dec_dat = (lp_ac_decoder_data)pDecoder;
+
+		dec_dat->last_timecode = pDecoder->timecode;
+		pDecoder->timecode = ((lp_ac_package_data)pPackage)->pts * timebase;
+
+		double delta = pDecoder->timecode - dec_dat->last_timecode;
+		double max_delta, min_delta;
+
+		if (dec_dat->sought > 0) {
+			max_delta = 120.0;
+			min_delta = -120.0;
+			--dec_dat->sought;
+		}
+		else {
+			max_delta = 4.0;
+			min_delta = 0.0;
+		}
+
+		if ((delta < min_delta) || (delta > max_delta)) {
+			pDecoder->timecode = dec_dat->last_timecode;
+			if (dec_dat->sought > 0) {
+				++dec_dat->sought;
+			}
+		}
+	}
+
+	if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
+		return ac_skip_video_package(pPackage, (lp_ac_video_decoder)pDecoder);
+	}
+	else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
+		return ac_skip_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);
 	}
 	return 0;
 }
