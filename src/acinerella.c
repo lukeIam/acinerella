@@ -640,6 +640,8 @@ enum PixelFormat convert_pix_format(ac_output_format fmt)
 			return AV_PIX_FMT_RGB32;
 		case AC_OUTPUT_BGRA32:
 			return AV_PIX_FMT_BGR32;
+		case AC_OUTPUT_YUV420P:
+			return AV_PIX_FMT_YUV420P;
 	}
 	return AV_PIX_FMT_RGB24;
 }
