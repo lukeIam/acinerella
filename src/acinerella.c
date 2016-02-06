@@ -958,6 +958,36 @@ int CALL_CONVT ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
 	return 0;
 }
 
+int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num)
+{
+	if (pDecoder == NULL)
+	{
+		return 0;
+	}
+
+	int skipedFrames = 0;
+
+	while (skipedFrames < num)
+	{		
+		lp_ac_package pckt = ac_read_package(pacInstance);
+		if (pckt != NULL)
+		{			
+			// Decode the package to figure out if its completing a frame
+			if (ac_skip_package(pckt, pDecoder) != 0)
+			{
+				skipedFrames++;
+			}
+			
+			ac_free_package(pckt);
+		}
+		else
+		{
+			return 0;
+		}		
+	}
+	return 1;
+}
+
 // Seek function
 int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
 {

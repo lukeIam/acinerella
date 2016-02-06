@@ -433,7 +433,7 @@ EXTERN int CALL_CONVT
     ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
 
 /**
-* Decodes a package using the specified decoder and skips it. Returns true id a frame was skiped.
+* Decodes a package using the specified decoder and skips it. Returns true if a frame was skiped.
 *
 * @param pPackage is the package that should be decoded, previously read by the
 * ac_read_package method.
@@ -443,6 +443,20 @@ EXTERN int CALL_CONVT
 */
 EXTERN int CALL_CONVT
 	ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
+
+/**
+* Decodes a packages using the specified decoder and skips num frames. Returns true if num frames where skiped.
+*
+* @param pacInstance is the Acinerella instance from which the data should be
+* read.
+* @param pDecoder is the decoder instance that should be used to decode the
+* package -- use the stream index stored in the package to determine the
+* correct decoder.
+* @num number of frames to skip.
+*/
+EXTERN int CALL_CONVT
+	ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num);
+
 /**
  * Seeks to the given target position in the file. The seek funtion is not able
  * to seek a single audio/video stream but seeks the whole file forward. The
