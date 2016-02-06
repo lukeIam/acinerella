@@ -988,6 +988,33 @@ int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder
 	return 1;
 }
 
+int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
+{
+	if (pDecoder == NULL)
+	{
+		return 0;
+	}
+
+	do
+	{
+		lp_ac_package pckt = ac_read_package(pacInstance);
+		if (pckt == NULL)
+		{
+			return 0;
+		}
+
+		// The packet is for the video stream, try to decode it
+		if (ac_decode_package(pckt, pDecoder) != 0)
+		{
+			ac_free_package(pckt);
+			return 1;
+		}
+
+		ac_free_package(pckt);
+
+	} while (true);
+}
+
 // Seek function
 int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
 {
