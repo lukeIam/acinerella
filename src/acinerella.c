@@ -998,12 +998,39 @@ int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
 	do
 	{
 		lp_ac_package pckt = ac_read_package(pacInstance);
-		if (pckt == NULL)
+		if (pckt == NULL || pckt->stream_index != pDecoder->stream_index)
 		{
 			return 0;
 		}
 
 		// The packet is for the video stream, try to decode it
+		if (ac_decode_package(pckt, pDecoder) != 0)
+		{
+			ac_free_package(pckt);
+			return 1;
+		}
+
+		ac_free_package(pckt);
+
+	} while (true);
+}
+
+int CALL_CONVT ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
+{
+	if (pDecoder == NULL)
+	{
+		return 0;
+	}
+
+	do
+	{
+		lp_ac_package pckt = ac_read_package(pacInstance);
+		if (pckt == NULL || pckt->stream_index != pDecoder->stream_index)
+		{
+			return 0;
+		}
+
+		// The packet is for the audio stream, try to decode it
 		if (ac_decode_package(pckt, pDecoder) != 0)
 		{
 			ac_free_package(pckt);

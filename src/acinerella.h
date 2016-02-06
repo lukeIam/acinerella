@@ -458,7 +458,7 @@ EXTERN int CALL_CONVT
 	ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num);
 
 /**
-* Decodes a frame using the specified decoder and strores the result in the decoder. Returns true if a frame cloud be decoded.
+* Decodes a video frame using the specified decoder and strores the result in the decoder. Returns true if a frame cloud be decoded.
 *
 * @param pacInstance is the Acinerella instance from which the data should be
 * read.
@@ -468,6 +468,19 @@ EXTERN int CALL_CONVT
 */
 EXTERN int CALL_CONVT 
 	ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder);
+
+/**
+* Decodes a audio frame using the specified decoder and strores the result in the decoder. Returns true if a frame cloud be decoded.
+*
+* @param pacInstance is the Acinerella instance from which the data should be
+* read.
+* @param pDecoder is the decoder instance that should be used to decode the
+* package -- use the stream index stored in the package to determine the
+* correct decoder.
+*/
+EXTERN int CALL_CONVT
+	ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder);
+
 
 /**
  * Seeks to the given target position in the file. The seek funtion is not able
