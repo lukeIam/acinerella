@@ -76,7 +76,9 @@ typedef enum _ac_output_format {
 	AC_OUTPUT_BGR24 = 1,
 	AC_OUTPUT_RGBA32 = 2,
 	AC_OUTPUT_BGRA32 = 3,
-	AC_OUTPUT_YUV420P = 4
+	AC_OUTPUT_YUV420P = 4,
+	AC_OUTPUT_UYVY422 = 5,
+	AC_OUTPUT_YUYV422 = 6
 } ac_output_format;
 
 /*Contains information about the whole file/stream that has been opened. Default
