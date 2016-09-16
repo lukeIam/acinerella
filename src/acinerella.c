@@ -315,7 +315,7 @@ AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
 		int read_size = probe_size - *buf_read;
 		int size = read_proc(sender, write_ptr, read_size);
 		if (size < 0) {
-			return fmt; // An error occurred, abort
+			return fmt;  // An error occurred, abort
 		}
 		if (size < read_size) {
 			last_iteration = 1;
@@ -502,10 +502,16 @@ void CALL_CONVT ac_close(lp_ac_instance pacInstance)
 void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
                                    lp_ac_stream_info info)
 {
+	// Rese the stream info structure
+	memset(info, 0, sizeof(ac_stream_info));
+	info->stream_type = AC_STREAM_TYPE_UNKNOWN;
+
+	// Abort if the instance is not opened
 	if (!(pacInstance->opened)) {
 		return;
 	}
 
+	// Read the information
 	lp_ac_data self = ((lp_ac_data)pacInstance);
 	switch (self->pFormatCtx->streams[nb]->codec->codec_type) {
 		case AVMEDIA_TYPE_VIDEO:
@@ -581,8 +587,9 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 			}
 
 			break;
-		default:
-			info->stream_type = AC_STREAM_TYPE_UNKNOWN;
+		default: {
+			// Do nothing
+		}
 	}
 }
 
@@ -629,7 +636,7 @@ void CALL_CONVT ac_free_package(lp_ac_package pPackage)
 //--- Decoder management ---
 //
 
-enum PixelFormat convert_pix_format(ac_output_format fmt)
+enum AVPixelFormat convert_pix_format(ac_output_format fmt)
 {
 	switch (fmt) {
 		case AC_OUTPUT_RGB24:
