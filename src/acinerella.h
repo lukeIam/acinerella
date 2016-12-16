@@ -36,104 +36,104 @@
  * "unknown".
  */
 typedef enum _ac_stream_type {
-	/**
-	 * The type of the media stream is not known. This kind of stream can not be
-	 * decoded.
-	 */
-	AC_STREAM_TYPE_VIDEO = 0,
+    /**
+     * The type of the media stream is not known. This kind of stream can not be
+     * decoded.
+     */
+    AC_STREAM_TYPE_VIDEO = 0,
 
-	/**
-	 * This media stream is a video stream.
-	 */
-	AC_STREAM_TYPE_AUDIO = 1,
+    /**
+     * This media stream is a video stream.
+     */
+    AC_STREAM_TYPE_AUDIO = 1,
 
-	/**
-	 * This media stream is an audio stream.
-	 */
-	AC_STREAM_TYPE_UNKNOWN = -1
+    /**
+     * This media stream is an audio stream.
+     */
+    AC_STREAM_TYPE_UNKNOWN = -1
 } ac_stream_type;
 
 /**
  * Defines the type of an Acinerella media decoder.
  */
 typedef enum _ac_decoder_type {
-	/**
-	 * This decoder is used to decode a video stream.
-	 */
-	AC_DECODER_TYPE_VIDEO = 0,
+    /**
+     * This decoder is used to decode a video stream.
+     */
+    AC_DECODER_TYPE_VIDEO = 0,
 
-	/**
-	 * This decoder is used to decode an audio stram.
-	 */
-	AC_DECODER_TYPE_AUDIO = 1
+    /**
+     * This decoder is used to decode an audio stram.
+     */
+    AC_DECODER_TYPE_AUDIO = 1
 } ac_decoder_type;
 
 /**
  * Defines the format video/image data is returned in.
  */
 typedef enum _ac_output_format {
-	AC_OUTPUT_RGB24 = 0,
-	AC_OUTPUT_BGR24 = 1,
-	AC_OUTPUT_RGBA32 = 2,
-	AC_OUTPUT_BGRA32 = 3,
-	AC_OUTPUT_YUV420P = 4,
-	AC_OUTPUT_UYVY422 = 5,
-	AC_OUTPUT_YUYV422 = 6
+    AC_OUTPUT_RGB24 = 0,
+    AC_OUTPUT_BGR24 = 1,
+    AC_OUTPUT_RGBA32 = 2,
+    AC_OUTPUT_BGRA32 = 3,
+    AC_OUTPUT_YUV420P = 4,
+    AC_OUTPUT_UYVY422 = 5,
+    AC_OUTPUT_YUYV422 = 6
 } ac_output_format;
 
 /*Contains information about the whole file/stream that has been opened. Default
 values are ""
 for strings and -1 for integer values.*/
 typedef struct _ac_file_info {
-	/**
-	 * Title of the media file
-	 */
-	char title[512];
+    /**
+     * Title of the media file
+     */
+    char title[512];
 
-	/**
-	 * Author or artist of the media file.
-	 */
-	char author[512];
+    /**
+     * Author or artist of the media file.
+     */
+    char author[512];
 
-	/**
-	 * Copyright information.
-	 */
-	char copyright[512];
+    /**
+     * Copyright information.
+     */
+    char copyright[512];
 
-	/**
-	 * Comment stored in the file.
-	 */
-	char comment[512];
+    /**
+     * Comment stored in the file.
+     */
+    char comment[512];
 
-	/**
-	 * Album the media file is from.
-	 */
-	char album[512];
+    /**
+     * Album the media file is from.
+     */
+    char album[512];
 
-	/**
-	 * Year in which the media file was created.
-	 */
-	int year;
+    /**
+     * Year in which the media file was created.
+     */
+    int year;
 
-	/**
-	 * Track number.
-	 */
-	int track;
+    /**
+     * Track number.
+     */
+    int track;
 
-	/**
-	 * Genre of the media file.
-	 */
-	char genre[32];
+    /**
+     * Genre of the media file.
+     */
+    char genre[32];
 
-	/**
-	 * Length of the file in milliseconds.
-	 */
-	int64_t duration;
+    /**
+     * Length of the file in milliseconds.
+     */
+    int64_t duration;
 
-	/**
-	 * Bitrate of the file.
-	 */
-	int bitrate;
+    /**
+     * Bitrate of the file.
+     */
+    int bitrate;
 } ac_file_info;
 
 typedef ac_file_info *lp_ac_file_info;
@@ -143,26 +143,26 @@ typedef ac_file_info *lp_ac_file_info;
  * decode one file at once.
  */
 typedef struct _ac_instance {
-	/**
-	 * If true, the instance currently opened a media file.
-	 */
-	bool opened;
+    /**
+     * If true, the instance currently opened a media file.
+     */
+    bool opened;
 
-	/**
-	 * Contains the count of streams the media file has. This value is available
-	 * after calling the ac_open function.
-	 */
-	int stream_count;
+    /**
+     * Contains the count of streams the media file has. This value is available
+     * after calling the ac_open function.
+     */
+    int stream_count;
 
-	/**
-	 * Set this value to change the image output format
-	 */
-	ac_output_format output_format;
+    /**
+     * Set this value to change the image output format
+     */
+    ac_output_format output_format;
 
-	/**
-	 * Contains information about the opened stream/file
-	 */
-	ac_file_info info;
+    /**
+     * Contains information about the opened stream/file
+     */
+    ac_file_info info;
 } ac_instance;
 
 /**
@@ -174,46 +174,46 @@ typedef ac_instance *lp_ac_instance;
  * Contains information about an Acinerella video stream.
  */
 struct _ac_video_stream_info {
-	/**
-	 * The width of one frame.
-	 */
-	int frame_width;
+    /**
+     * The width of one frame.
+     */
+    int frame_width;
 
-	/**
-	 * The height of one frame.
-	 */
-	int frame_height;
+    /**
+     * The height of one frame.
+     */
+    int frame_height;
 
-	/**
-	 * The width of one pixel. 1.07 for 4:3 format, 1,42 for the 16:9 format
-	 */
-	float pixel_aspect;
+    /**
+     * The width of one pixel. 1.07 for 4:3 format, 1,42 for the 16:9 format
+     */
+    float pixel_aspect;
 
-	/**
-	 * Frames per second that should be played.
-	 */
-	double frames_per_second;
+    /**
+     * Frames per second that should be played.
+     */
+    double frames_per_second;
 };
 
 /**
  * Contains information about an Acinerella audio stream.
  */
 struct _ac_audio_stream_info {
-	/**
-	 * Samples per second. Default values are 44100 or 48000.
-	 */
-	int samples_per_second;
+    /**
+     * Samples per second. Default values are 44100 or 48000.
+     */
+    int samples_per_second;
 
-	/**
-	 * Bits per sample. Can be 8, 16 or 32 Bit. In the latter case the data is
-	 * in floating point format.
-	 */
-	int bit_depth;
+    /**
+     * Bits per sample. Can be 8, 16 or 32 Bit. In the latter case the data is
+     * in floating point format.
+     */
+    int bit_depth;
 
-	/**
-	 * Count of channels in the audio stream.
-	 */
-	int channel_count;
+    /**
+     * Count of channels in the audio stream.
+     */
+    int channel_count;
 };
 
 /**
@@ -221,23 +221,23 @@ struct _ac_audio_stream_info {
  * is an video stream, "audio_info" when the stream is an audio stream.
  */
 union _ac_additional_stream_info {
-	struct _ac_audio_stream_info audio_info;
-	struct _ac_video_stream_info video_info;
+    struct _ac_audio_stream_info audio_info;
+    struct _ac_video_stream_info video_info;
 };
 
 /*Contains information about an Acinerella stream.*/
 typedef struct _ac_stream_info {
-	/**
-	 * Contains the type of the stream.
-	 */
-	ac_stream_type stream_type;
+    /**
+     * Contains the type of the stream.
+     */
+    ac_stream_type stream_type;
 
-	/**
-	 * Additional data depending on the stream type. Either access the
-	 * "audio_info" or the "video_info" field, depending on the value stored in
-	 * the "stream_type" member.
-	 */
-	union _ac_additional_stream_info additional_info;
+    /**
+     * Additional data depending on the stream type. Either access the
+     * "audio_info" or the "video_info" field, depending on the value stored in
+     * the "stream_type" member.
+     */
+    union _ac_additional_stream_info additional_info;
 } ac_stream_info;
 
 /**
@@ -249,40 +249,40 @@ typedef ac_stream_info *lp_ac_stream_info;
  * Contains information about an Acinerella video/audio decoder.
  */
 typedef struct _ac_decoder {
-	/**
-	 * Pointer on the Acinerella instance.
-	 */
-	lp_ac_instance pacInstance;
+    /**
+     * Pointer on the Acinerella instance.
+     */
+    lp_ac_instance pacInstance;
 
-	/**
-	 * Contains the type of the decoder.
-	 */
-	ac_decoder_type type;
+    /**
+     * Contains the type of the decoder.
+     */
+    ac_decoder_type type;
 
-	/**
-	 * The timecode of the currently decoded picture in seconds.
-	 */
-	double timecode;
+    /**
+     * The timecode of the currently decoded picture in seconds.
+     */
+    double timecode;
 
-	/**
-	 * Contains information about the stream the decoder is attached to.
-	 */
-	ac_stream_info stream_info;
+    /**
+     * Contains information about the stream the decoder is attached to.
+     */
+    ac_stream_info stream_info;
 
-	/**
-	 * The index of the stream the decoder is attached to.
-	 */
-	int stream_index;
+    /**
+     * The index of the stream the decoder is attached to.
+     */
+    int stream_index;
 
-	/**
-	 * Pointer to the buffer which contains the data.
-	 */
-	uint8_t *pBuffer;
+    /**
+     * Pointer to the buffer which contains the data.
+     */
+    uint8_t *pBuffer;
 
-	/**
-	 * Size of the data in the buffer.
-	 */
-	int buffer_size;
+    /**
+     * Size of the data in the buffer.
+     */
+    int buffer_size;
 } ac_decoder;
 
 typedef ac_decoder *lp_ac_decoder;
@@ -291,8 +291,8 @@ typedef ac_decoder *lp_ac_decoder;
  * Contains information about an Acinerella package.
  */
 typedef struct _ac_package {
-	/*The stream the package belongs to.*/
-	int stream_index;
+    /*The stream the package belongs to.*/
+    int stream_index;
 } ac_package;
 
 typedef ac_package *lp_ac_package;
@@ -445,7 +445,7 @@ EXTERN int CALL_CONVT
 * correct decoder.
 */
 EXTERN int CALL_CONVT
-	ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
+    ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
 
 /**
 * Decodes a packages using the specified decoder and skips num frames. Returns true if num frames where skiped.
@@ -458,7 +458,7 @@ EXTERN int CALL_CONVT
 * @num number of frames to skip.
 */
 EXTERN int CALL_CONVT
-	ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num);
+    ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num);
 
 /**
 * Decodes a video frame using the specified decoder and strores the result in the decoder. Returns true if a frame cloud be decoded.
@@ -470,7 +470,7 @@ EXTERN int CALL_CONVT
 * correct decoder.
 */
 EXTERN int CALL_CONVT 
-	ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder);
+    ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder);
 
 /**
 * Decodes a audio frame using the specified decoder and strores the result in the decoder. Returns true if a frame cloud be decoded.
@@ -482,7 +482,7 @@ EXTERN int CALL_CONVT
 * correct decoder.
 */
 EXTERN int CALL_CONVT
-	ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder);
+    ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder);
 
 
 /**
