@@ -23,6 +23,7 @@
 #include <libavformat/avio.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
+#include "libavutil/imgutils.h"
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
 
@@ -213,7 +214,7 @@ static int io_read(void *opaque, uint8_t *buf, int buf_size)
 		// Advance the read/write pointers
 		self->probe_buffer_offs += cnt;
 		buf += cnt;
-		buf_size -= cnt;
+		buf_size -= (int)cnt;
 
 		// Free the probe buffer once all bytes have been read
 		if (self->probe_buffer_offs == self->probe_buffer_size) {
@@ -312,14 +313,14 @@ AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
 
 		// Read the new data
 		uint8_t *write_ptr = tmp_buf + *buf_read;
-		int read_size = probe_size - *buf_read;
+		int read_size = probe_size - (int)*buf_read;
 		int size = read_proc(sender, write_ptr, read_size);
 		if (size < 0) {
 			return fmt;  // An error occurred, abort
 		}
 		if (size < read_size) {
 			last_iteration = 1;
-			probe_size = *buf_read + size;
+			probe_size = (int)*buf_read + size;
 		}
 
 		// Probe it
@@ -371,7 +372,7 @@ static int finalize_open(lp_ac_instance pacInstance)
 		cpymetadata(ctx, "genre", pacInstance->info.genre, 32);
 		cpymetadatai(ctx, "year", &(pacInstance->info.year));
 		cpymetadatai(ctx, "track", &(pacInstance->info.track));
-		pacInstance->info.bitrate = ctx->bit_rate;
+		pacInstance->info.bitrate = (int)ctx->bit_rate;
 		pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;
 	} else {
 		ac_close(pacInstance);
@@ -534,8 +535,8 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 			if (pixel_aspect_num <= 0.0 || pixel_aspect_den <= 0.0)
 				info->additional_info.video_info.pixel_aspect = 1.0;
 			else
-				info->additional_info.video_info.pixel_aspect =
-					pixel_aspect_num / pixel_aspect_den;
+				info->additional_info.video_info.pixel_aspect = (float)(
+					pixel_aspect_num / pixel_aspect_den);
 
 			info->additional_info.video_info.frames_per_second =
 				(double)self->pFormatCtx->streams[nb]->r_frame_rate.num /
@@ -612,7 +613,7 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
 	if (av_read_frame(((lp_ac_data)(pacInstance))->pFormatCtx, pkt->pPack) >=
 		0) {
 		if (pkt->pPack->dts != AV_NOPTS_VALUE) {
-			pkt->pts = pkt->pPack->dts;
+			pkt->pts = (int)pkt->pPack->dts;
 		}
 		pkt->package.stream_index = pkt->pPack->stream_index;
 		return (lp_ac_package)(pkt);
@@ -711,8 +712,9 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
 	av_image_fill_arrays(pDecoder->pFrameRGB->data,
 					pDecoder->pFrameRGB->linesize,
 					pDecoder->decoder.pBuffer,
-				   convert_pix_format(pacInstance->output_format),
-				   pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
+				    convert_pix_format(pacInstance->output_format),
+					pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height,
+				   	1);
 
 	return (void *)pDecoder;
 }
@@ -836,8 +838,6 @@ int ac_skip_video_package(lp_ac_package pPackage,
 	lp_ac_video_decoder pDecoder)
 {
 	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
-
-	int finished;	
 
 	if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) != 0)
 	{
@@ -1103,7 +1103,7 @@ int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
 	int64_t pos = av_rescale(target_pos, AV_TIME_BASE, 1000);
 
 	((lp_ac_decoder_data)pDecoder)->sought = 100;
-	pDecoder->timecode = target_pos / 1000;
+	pDecoder->timecode = (double)target_pos / 1000;
 
 	if (av_seek_frame(((lp_ac_data)pDecoder->pacInstance)->pFormatCtx,
 					  pDecoder->stream_index,
