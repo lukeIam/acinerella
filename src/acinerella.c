@@ -170,6 +170,24 @@ lp_ac_instance CALL_CONVT ac_init(void)
     return (lp_ac_instance)ptmp;
 }
 
+lp_ac_instance CALL_CONVT ac_init_of(ac_output_format outputFormat)
+{
+    ac_init_ffmpeg();
+
+    // Allocate a new instance of the videoplayer data and return it
+    lp_ac_data ptmp;
+    ptmp = (lp_ac_data)av_malloc(sizeof(ac_data));
+
+    // Initialize the created structure
+    memset(ptmp, 0, sizeof(ac_data));
+
+    ptmp->instance.opened = 0;
+    ptmp->instance.stream_count = 0;
+    ptmp->instance.output_format = outputFormat;
+    init_info(&(ptmp->instance.info));
+    return (lp_ac_instance)ptmp;
+}
+
 void CALL_CONVT ac_free(lp_ac_instance pacInstance)
 {
     if (pacInstance) {
@@ -616,7 +634,7 @@ void CALL_CONVT ac_free_package(lp_ac_package pPackage)
             self->pPack->data = NULL;
             self->pPack->size = 0;
             
-            av_packet_free_side_data(self->pPack);
+            av_packet_free_side_data(self->pPack);			
         }
         av_free(self->pPack);
         av_free(self);
@@ -638,6 +656,12 @@ enum AVPixelFormat convert_pix_format(ac_output_format fmt)
             return AV_PIX_FMT_RGB32;
         case AC_OUTPUT_BGRA32:
             return AV_PIX_FMT_BGR32;
+        case AC_OUTPUT_YUV420P:
+            return AV_PIX_FMT_YUV420P;
+        case AC_OUTPUT_UYVY422:
+            return AV_PIX_FMT_UYVY422;
+        case AC_OUTPUT_YUYV422:
+            return AV_PIX_FMT_YUYV422;
     }
     return AV_PIX_FMT_RGB24;
 }
@@ -655,15 +679,18 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
     pDecoder->decoder.pacInstance = pacInstance;
     pDecoder->decoder.type = AC_DECODER_TYPE_VIDEO;
     pDecoder->decoder.stream_index = nb;
-    pDecoder->pCodecCtx =
-        ((lp_ac_data)(pacInstance))->pFormatCtx->streams[nb]->codec;
+    
+    AVCodecParameters* pCodecParam = ((lp_ac_data)(pacInstance))->pFormatCtx->streams[nb]->codecpar;
     pDecoder->decoder.stream_info = *info;
 
     // Find correspondenting codec
     if (!(pDecoder->pCodec =
-              avcodec_find_decoder(pDecoder->pCodecCtx->codec_id))) {
+              avcodec_find_decoder(pCodecParam->codec_id))) {
         return NULL;  // Codec could not have been found
     }
+
+    pDecoder->pCodecCtx = avcodec_alloc_context3(pDecoder->pCodec);
+    avcodec_parameters_to_context(pDecoder->pCodecCtx, pCodecParam);
 
     // Open codec
     if (avcodec_open2(pDecoder->pCodecCtx, pDecoder->pCodec, NULL) < 0) {
@@ -687,8 +714,8 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
     // Link decoder to buffer
     av_image_fill_arrays(pDecoder->pFrameRGB->data,
                     pDecoder->pFrameRGB->linesize,
-                   pDecoder->decoder.pBuffer,
-                   convert_pix_format(pacInstance->output_format),
+                    pDecoder->decoder.pBuffer,
+                    convert_pix_format(pacInstance->output_format),
                     pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height,
                     1);
 
@@ -709,12 +736,15 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
     pDecoder->decoder.pacInstance = pacInstance;
     pDecoder->decoder.type = AC_DECODER_TYPE_AUDIO;
     pDecoder->decoder.stream_index = nb;
-    pDecoder->decoder.stream_info = *info;
-
-    pDecoder->pCodecCtx = self->pFormatCtx->streams[nb]->codec;
+    pDecoder->decoder.stream_info = *info;	
+        
+    AVCodecParameters* pCodecParam = self->pFormatCtx->streams[nb]->codecpar;
 
     // Find correspondenting codec
-    ERR(pDecoder->pCodec = avcodec_find_decoder(pDecoder->pCodecCtx->codec_id));
+    ERR(pDecoder->pCodec = avcodec_find_decoder(pCodecParam->codec_id));
+
+    pDecoder->pCodecCtx = avcodec_alloc_context3(pDecoder->pCodec);
+    avcodec_parameters_to_context(pDecoder->pCodecCtx, pCodecParam);
 
     // Open codec
     AV_ERR(avcodec_open2(pDecoder->pCodecCtx, pDecoder->pCodec, NULL));
@@ -793,21 +823,39 @@ int ac_decode_video_package(lp_ac_package pPackage,
         return 0;
     }
 
-        pDecoder->pSwsCtx = sws_getCachedContext(
-            pDecoder->pSwsCtx, pDecoder->pCodecCtx->width,
-            pDecoder->pCodecCtx->height, pDecoder->pCodecCtx->pix_fmt,
-            pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height,
-            convert_pix_format(pDecoder->decoder.pacInstance->output_format),
-            SWS_BICUBIC, NULL, NULL, NULL);
+    pDecoder->pSwsCtx = sws_getCachedContext(
+    pDecoder->pSwsCtx, pDecoder->pCodecCtx->width,
+    pDecoder->pCodecCtx->height, pDecoder->pCodecCtx->pix_fmt,
+    pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height,
+    convert_pix_format(pDecoder->decoder.pacInstance->output_format),
+    SWS_BICUBIC, NULL, NULL, NULL);
 
-        sws_scale(pDecoder->pSwsCtx,
-                  (const uint8_t *const *)(pDecoder->pFrame->data),
-                  pDecoder->pFrame->linesize,
-                  0,  //?
-                  pDecoder->pCodecCtx->height, pDecoder->pFrameRGB->data,
-                  pDecoder->pFrameRGB->linesize);
-        return 1;
+    sws_scale(pDecoder->pSwsCtx,
+                (const uint8_t *const *)(pDecoder->pFrame->data),
+                pDecoder->pFrame->linesize,
+                0,  //?
+                pDecoder->pCodecCtx->height, pDecoder->pFrameRGB->data,
+                pDecoder->pFrameRGB->linesize);
+    return 1;
+    
+}
 
+int ac_skip_video_package(lp_ac_package pPackage,
+    lp_ac_video_decoder pDecoder)
+{
+    lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
+
+    if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) != 0)
+    {
+        return 0;
+    }
+
+    if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) != 0)
+    {
+        return 0;
+    }
+    
+    return 1;
 }
 
 int ac_decode_audio_package(lp_ac_package pPackage,
@@ -847,6 +895,25 @@ int ac_decode_audio_package(lp_ac_package pPackage,
     } else {
         // No conversion needs to be done, simply set the buffer pointer
         pDecoder->decoder.pBuffer = pDecoder->pFrame->data[0];
+    }
+
+    return got_frame;
+}
+
+int ac_skip_audio_package(lp_ac_package pPackage,
+    lp_ac_audio_decoder pDecoder)
+{
+    int got_frame = 0;
+    int len = 0;
+    lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
+    if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) != 0)
+    {
+        return 0;
+    }
+
+    if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) != 0)
+    {
+        return 0;
     }
 
     return got_frame;
@@ -893,6 +960,143 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
     return 0;
 }
 
+int CALL_CONVT ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
+{
+    double timebase = av_q2d(((lp_ac_data)pDecoder->pacInstance)
+        ->pFormatCtx->streams[pPackage->stream_index]
+        ->time_base);
+
+    // Create a valid timecode
+    if (((lp_ac_package_data)pPackage)->pts > 0) {
+        lp_ac_decoder_data dec_dat = (lp_ac_decoder_data)pDecoder;
+
+        dec_dat->last_timecode = pDecoder->timecode;
+        pDecoder->timecode = ((lp_ac_package_data)pPackage)->pts * timebase;
+
+        double delta = pDecoder->timecode - dec_dat->last_timecode;
+        double max_delta, min_delta;
+
+        if (dec_dat->sought > 0) {
+            max_delta = 120.0;
+            min_delta = -120.0;
+            --dec_dat->sought;
+        }
+        else {
+            max_delta = 4.0;
+            min_delta = 0.0;
+        }
+
+        if ((delta < min_delta) || (delta > max_delta)) {
+            pDecoder->timecode = dec_dat->last_timecode;
+            if (dec_dat->sought > 0) {
+                ++dec_dat->sought;
+            }
+        }
+    }
+
+    if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
+        return ac_skip_video_package(pPackage, (lp_ac_video_decoder)pDecoder);
+    }
+    else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
+        return ac_skip_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);
+    }
+    return 0;
+}
+
+int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num)
+{
+    if (pDecoder == NULL)
+    {
+        return 0;
+    }
+
+    int skipedFrames = 0;
+
+    while (skipedFrames < num)
+    {		
+        lp_ac_package pckt = ac_read_package(pacInstance);
+        if (pckt != NULL)
+        {			
+            // Decode the package to figure out if its completing a frame
+            if (ac_skip_package(pckt, pDecoder) != 0)
+            {
+                skipedFrames++;
+            }
+            
+            ac_free_package(pckt);
+        }
+        else
+        {
+            return 0;
+        }		
+    }
+    return 1;
+}
+
+int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
+{
+    if (pDecoder == NULL)
+    {
+        return 0;
+    }
+
+    do
+    {
+        lp_ac_package pckt = ac_read_package(pacInstance);
+        if (pckt == NULL)
+        {
+            return 0;
+        }
+
+        if(pckt->stream_index != pDecoder->stream_index)
+        {
+            continue;
+        }
+
+        // The packet is for the video stream, try to decode it
+        if (ac_decode_package(pckt, pDecoder) != 0)
+        {
+            ac_free_package(pckt);
+            return 1;
+        }
+
+        ac_free_package(pckt);
+
+    } while (true);
+}
+
+int CALL_CONVT ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
+{
+    if (pDecoder == NULL)
+    {
+        return 0;
+    }
+
+    do
+    {
+        lp_ac_package pckt = ac_read_package(pacInstance);
+        if (pckt == NULL)
+        {
+            return 0;
+        }
+
+        if (pckt->stream_index != pDecoder->stream_index)
+        {
+            continue;
+        }
+
+        // The packet is for the audio stream, try to decode it
+        if (ac_decode_package(pckt, pDecoder) != 0)
+        {
+            ac_free_package(pckt);
+            return 1;
+        }
+
+        ac_free_package(pckt);
+
+    } while (true);
+}
+
 // Seek function
 int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
 {
@@ -924,7 +1128,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
         av_free(pDecoder->pFrame);
         av_free(pDecoder->pFrameRGB);
         sws_freeContext(pDecoder->pSwsCtx);
-        avcodec_close(pDecoder->pCodecCtx);
+        avcodec_free_context(&pDecoder->pCodecCtx);
         av_free(pDecoder->decoder.pBuffer);
         av_free(pDecoder);
     }
@@ -934,7 +1138,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
 void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder)
 {
     if (pDecoder) {
-        avcodec_close(pDecoder->pCodecCtx);
+        avcodec_free_context(&pDecoder->pCodecCtx);
         av_frame_free(&(pDecoder->pFrame));
         if (pDecoder->pSwrCtx) {
             swr_free(&(pDecoder->pSwrCtx));
