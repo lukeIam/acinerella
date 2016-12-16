@@ -1018,7 +1018,7 @@ int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder
         if (pckt != NULL)
         {			
             // Decode the package to figure out if its completing a frame
-            if (ac_skip_package(pckt, pDecoder) != 0)
+            if (pckt->stream_index == pDecoder->stream_index && ac_skip_package(pckt, pDecoder) != 0)
             {
                 skipedFrames++;
             }
