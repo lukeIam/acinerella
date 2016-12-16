@@ -679,15 +679,18 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
     pDecoder->decoder.pacInstance = pacInstance;
     pDecoder->decoder.type = AC_DECODER_TYPE_VIDEO;
     pDecoder->decoder.stream_index = nb;
-    pDecoder->pCodecCtx =
-        ((lp_ac_data)(pacInstance))->pFormatCtx->streams[nb]->codec;
+    
+    AVCodecParameters* pCodecParam = ((lp_ac_data)(pacInstance))->pFormatCtx->streams[nb]->codecpar;
     pDecoder->decoder.stream_info = *info;
 
     // Find correspondenting codec
     if (!(pDecoder->pCodec =
-              avcodec_find_decoder(pDecoder->pCodecCtx->codec_id))) {
+              avcodec_find_decoder(pCodecParam->codec_id))) {
         return NULL;  // Codec could not have been found
     }
+
+    pDecoder->pCodecCtx = avcodec_alloc_context3(pDecoder->pCodec);
+    avcodec_parameters_to_context(pDecoder->pCodecCtx, pCodecParam);
 
     // Open codec
     if (avcodec_open2(pDecoder->pCodecCtx, pDecoder->pCodec, NULL) < 0) {
@@ -735,10 +738,13 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
     pDecoder->decoder.stream_index = nb;
     pDecoder->decoder.stream_info = *info;	
         
-    pDecoder->pCodecCtx = self->pFormatCtx->streams[nb]->codec;
+    AVCodecParameters* pCodecParam = self->pFormatCtx->streams[nb]->codecpar;
 
     // Find correspondenting codec
-    ERR(pDecoder->pCodec = avcodec_find_decoder(pDecoder->pCodecCtx->codec_id));
+    ERR(pDecoder->pCodec = avcodec_find_decoder(pCodecParam->codec_id));
+
+    pDecoder->pCodecCtx = avcodec_alloc_context3(pDecoder->pCodec);
+    avcodec_parameters_to_context(pDecoder->pCodecCtx, pCodecParam);
 
     // Open codec
     AV_ERR(avcodec_open2(pDecoder->pCodecCtx, pDecoder->pCodec, NULL));
@@ -1122,7 +1128,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
         av_free(pDecoder->pFrame);
         av_free(pDecoder->pFrameRGB);
         sws_freeContext(pDecoder->pSwsCtx);
-        avcodec_close(pDecoder->pCodecCtx);
+        avcodec_free_context(&pDecoder->pCodecCtx);
         av_free(pDecoder->decoder.pBuffer);
         av_free(pDecoder);
     }
@@ -1132,7 +1138,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
 void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder)
 {
     if (pDecoder) {
-        avcodec_close(pDecoder->pCodecCtx);
+        avcodec_free_context(&pDecoder->pCodecCtx);
         av_frame_free(&(pDecoder->pFrame));
         if (pDecoder->pSwrCtx) {
             swr_free(&(pDecoder->pSwrCtx));
