@@ -298,7 +298,7 @@ lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(uint8_t *buf, int bufsize,
     // padded
     uint8_t *aligned_buf;
     ERR(aligned_buf = av_malloc(bufsize + AVPROBE_PADDING_SIZE));
-    memset(aligned_buf + bufsize, 0, AVPROBE_PADDING_SIZE);
+	memset(aligned_buf, 0, bufsize + AVPROBE_PADDING_SIZE);
     memcpy(aligned_buf, buf, bufsize);
 
     // Set the probe data buffer
@@ -1109,7 +1109,7 @@ int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
 {
     if (pDecoder == NULL)
     {
-        return 0;
+        return -1;
     }
 
     do
@@ -1117,7 +1117,7 @@ int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
         lp_ac_package pckt = ac_read_package(pacInstance);
         if (pckt == NULL)
         {
-            return 0;
+            return -2;
         }
 
         if(pckt->stream_index != pDecoder->stream_index)
