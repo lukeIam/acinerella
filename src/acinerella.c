@@ -924,15 +924,15 @@ int ac_skip_video_package(lp_ac_package pPackage,
 
     if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0)
     {
-        return 0;
+        return -1;
     }
 
     if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) < 0)
     {
-        return 0;
+        return -2;
     }
     
-    return 1;
+    return 0;
 }
 
 int ac_decode_audio_package(lp_ac_package pPackage,
@@ -984,21 +984,20 @@ error:
 
 int ac_skip_audio_package(lp_ac_package pPackage,
     lp_ac_audio_decoder pDecoder)
-{
-    int got_frame = 0;
+{    
     int len = 0;
     lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
     if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0)
     {
-        return 0;
+        return -1;
     }
 
     if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) < 0)
     {
-        return 0;
+        return -2;
     }
 
-    return got_frame;
+    return 0;
 }
 
 int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
@@ -1082,14 +1081,14 @@ int CALL_CONVT ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
     else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
         return ac_skip_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);
     }
-    return 0;
+    return -9;
 }
 
 int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder, int num)
 {
     if (pDecoder == NULL)
     {
-        return 0;
+        return -1;
     }
 
     int skipedFrames = 0;
@@ -1100,7 +1099,7 @@ int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder
         if (pckt != NULL)
         {			
             // Decode the package to figure out if its completing a frame
-            if (pckt->stream_index == pDecoder->stream_index && ac_skip_package(pckt, pDecoder) < 0)
+            if (pckt->stream_index == pDecoder->stream_index && ac_skip_package(pckt, pDecoder) == 0)
             {
                 skipedFrames++;
             }
@@ -1109,10 +1108,10 @@ int CALL_CONVT ac_skip_frames(lp_ac_instance pacInstance, lp_ac_decoder pDecoder
         }
         else
         {
-            return 0;
+            return -2;
         }		
     }
-    return 1;
+    return 0;
 }
 
 int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
@@ -1201,10 +1200,10 @@ int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
                       pDecoder->stream_index,
                       av_rescale_q(pos, AV_TIME_BASE_Q, timebase),
                       flags) >= 0) {
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return -1;
 }
 
 // Free video decoder
