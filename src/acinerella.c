@@ -661,7 +661,9 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
     pkt->pPack->size = 0;
 
     // Try to read package
-    if (av_read_frame(((lp_ac_data)(pacInstance))->pFormatCtx, pkt->pPack) >=
+	int av_read_frame_status =
+	    av_read_frame(((lp_ac_data)(pacInstance))->pFormatCtx, pkt->pPack);
+	if (av_read_frame_status >=
         0) {
         if (pkt->pPack->dts != AV_NOPTS_VALUE) {
             pkt->pts = (int)pkt->pPack->dts;
@@ -876,13 +878,21 @@ int ac_decode_video_package(lp_ac_package pPackage,
 
     if(avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0)
     {
-        return 0;
+        return -1;
     }
 
-    if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) < 0)
+    int avcodec_receive_frame_response;
+	    
+    do
     {
-        return 0;
-    }
+		avcodec_receive_frame_response = avcodec_receive_frame(pDecoder->pCodecCtx,
+		                                                    pDecoder->pFrame);
+		if (avcodec_receive_frame_response == AVERROR(EAGAIN) ||
+		    avcodec_receive_frame_response == AVERROR_EOF) {
+			return avcodec_receive_frame_response;
+		}		
+
+	} while (avcodec_receive_frame_response > 0);
 
     if((pDecoder->pSwsCtx = sws_getCachedContext(
     pDecoder->pSwsCtx, pDecoder->pCodecCtx->width,
@@ -891,7 +901,7 @@ int ac_decode_video_package(lp_ac_package pPackage,
     convert_pix_format(pDecoder->decoder.pacInstance->output_format),
                 SWS_BICUBIC, NULL, NULL, NULL)) < 0)
     {
-        return 0;
+        return -3;
     }
     
     if(sws_scale(pDecoder->pSwsCtx,
@@ -901,10 +911,10 @@ int ac_decode_video_package(lp_ac_package pPackage,
                 pDecoder->pCodecCtx->height, pDecoder->pFrameRGB->data,
                   pDecoder->pFrameRGB->linesize) < 0)
     {
-        return 0;
+        return -4;
     }
-    return 1;
-    
+
+    return 0;    
 }
 
 int ac_skip_video_package(lp_ac_package pPackage,
@@ -934,12 +944,12 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 
     if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0)
     {
-        return 0;
+        return -1;
     }
 
     if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) < 0)
     {
-        return 0;
+        return -2;
     }	
 
     // Calculate the output buffer size
@@ -960,7 +970,7 @@ int ac_decode_audio_package(lp_ac_package pPackage,
                     sample_count, (const uint8_t **)(pDecoder->pFrame->data),
                         sample_count) < 0)
         {
-            return 0;
+            return -3;
         }
     } else {
         // No conversion needs to be done, simply set the buffer pointer
@@ -969,7 +979,7 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 
     return got_frame;
 error:
-    return 0;
+    return -4;
 }
 
 int ac_skip_audio_package(lp_ac_package pPackage,
@@ -1029,7 +1039,7 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
     } else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
         return ac_decode_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);
     }
-    return 0;
+    return -10;
 }
 
 int CALL_CONVT ac_skip_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
@@ -1126,13 +1136,16 @@ int CALL_CONVT ac_get_frame(lp_ac_instance pacInstance, lp_ac_decoder pDecoder)
         }
 
         // The packet is for the video stream, try to decode it
-        if (ac_decode_package(pckt, pDecoder) < 0)
-        {
-            ac_free_package(pckt);
-            return 1;
-        }
+        int _status = ac_decode_package(pckt, pDecoder);
 
         ac_free_package(pckt);
+               
+        if (_status > 0 || _status == AVERROR(EAGAIN))
+        {
+            continue;
+        }        
+        
+		return _status;
 
     } while (true);
 }
@@ -1141,7 +1154,7 @@ int CALL_CONVT ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDec
 {
     if (pDecoder == NULL)
     {
-        return 0;
+        return -1;
     }
 
     do
@@ -1149,7 +1162,7 @@ int CALL_CONVT ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDec
         lp_ac_package pckt = ac_read_package(pacInstance);
         if (pckt == NULL)
         {
-            return 0;
+            return -2;
         }
 
         if (pckt->stream_index != pDecoder->stream_index)
@@ -1157,15 +1170,16 @@ int CALL_CONVT ac_get_audio_frame(lp_ac_instance pacInstance, lp_ac_decoder pDec
             continue;
         }
 
-        // The packet is for the audio stream, try to decode it
-        if (ac_decode_package(pckt, pDecoder) < 0)
-        {
-            ac_free_package(pckt);
-            return 1;
-        }
+         // The packet is for the video stream, try to decode it
+        int _status = ac_decode_package(pckt, pDecoder);
 
-        ac_free_package(pckt);
+		ac_free_package(pckt);
 
+		if (_status > 0 || _status == AVERROR(EAGAIN)) {
+			continue;
+		}
+
+		return _status;
     } while (true);
 }
 
